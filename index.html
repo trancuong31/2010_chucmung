@@ -758,9 +758,6 @@
       });
     }
     $("btn").onclick = decode;
-    $("stage").addEventListener("click", (e) => {
-      if (e.target.id !== "btn") decode();
-    });
     addEventListener("resize", () => {
       W = innerWidth;
       H = innerHeight;
@@ -799,8 +796,9 @@
     }
 
     function heartStorm() {
-      for (let i = 0; i < 40; i++) setTimeout(heart, i * 60);
-    }
+  const n = matchMedia("(max-width: 600px)").matches ? 20 : 40;
+  for (let i = 0; i < n; i++) setTimeout(heart, i * 60);
+}
 
     function showCard() {
       $("stage").classList.add("hide");
@@ -821,13 +819,30 @@
         setTimeout(() => ($("btns").style.opacity = 1), 3000);
       }, 1200);
     }
-    addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        e.preventDefault();
-        if (!decoding) decode();
-        else heartStorm();
-      }
-    });
+
+    let lastStorm = 0;
+
+function trigger() {
+  if (!decoding) return decode();
+
+  // chống spam: tối đa 1 lần / 500ms để không nghẽn DOM trên mobile
+  const now = performance.now();
+  if (now - lastStorm < 500) return;
+  lastStorm = now;
+  heartStorm();
+}
+
+addEventListener("keydown", (e) => {
+  if (e.code !== "Space") return;
+  e.preventDefault(); // chặn cuộn trang và chặn Space "bấm" nút đang focus
+  if (e.repeat) return; // giữ phím không bắn liên tục
+  trigger();
+});
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("button")) return; // nút đã có handler riêng
+  trigger();
+});
     const cur = document.createElement("div");
     cur.id = "cur";
     cur.innerHTML = "<span>❤</span>";
